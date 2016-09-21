@@ -1,11 +1,18 @@
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
+}
 
 plugins {
-        id "com.github.samueltbrown.cucumber" version "0.9"
+        id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
 apply plugin: 'java'
-
 
 repositories {
     mavenCentral()
@@ -15,34 +22,35 @@ repositories {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.7'
     compile 'info.cukes:cucumber-java:1.2.4'
-
-
-    // Declare the dependency for your favourite test framework you want to use in your tests.
-    // TestNG is also supported by the Gradle Test task. Just change the
-    // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
-    // 'test.useTestNG()' to your build script.
-    cucumberRuntime "org.testng:testng:6.9.9"
-    cucumberRuntime 'info.cukes:cucumber-java:1.2.4'
-
+    compile 'info.cukes:cucumber-guice:1.2.4'
+    compile group: 'com.google.inject', name: 'guice', version: '4.1.0'
+    compile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '3.0.0-beta2'
+    compile group: 'org.testng', name: 'testng', version: '6.9.10'
+    compile group: 'com.beust', name: 'jcommander', version: '1.48'
 }
 
-cucumber {
-    formats = ['pretty','json:build/cucumber.json','junit:build/cucumber.xml']
-    glueDirs = ['classpath:pl.wojtun']
-    featureDirs = ['src/cucumber/resources/features']
-    monochrome = false
-    strict = false
-    dryRun = false
-    ignoreFailures = false
-}
 
-task cucumber2() {  
+task cucumber() {
     dependsOn assemble, compileTestJava
     doLast {
         javaexec {
             main = "cucumber.api.cli.Main"
             classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
-            args = ['-f', 'json:target/cucumber.json', '--glue', 'pl.wojtun', 'src/test/resources']
+            args = ['-f', 'json:build/cucumber.json', '--glue', 'pl.wojtun', 'src/test/resources']
         }
     }
+}
+
+task copyFilesToDist(type: Copy) {
+    dependsOn(shadowJar)
+    from 'src/main/dist'
+    from 'build/libs'
+    into 'build/dist'
+}
+
+
+task zip(type: Zip) {
+    dependsOn(copyFilesToDist)
+    from 'build/dist'
+    into('build/zip')
 }
